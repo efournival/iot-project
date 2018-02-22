@@ -4,19 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
 )
 
 type RGBLED struct {
 	r, g, b gpio.PinPWM
-}
-
-func init() {
-	if _, err := periph.Init(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
 }
 
 func NewRGBLED(rpin, gpin, bpin gpio.PinIO) *RGBLED {

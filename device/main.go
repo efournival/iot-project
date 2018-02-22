@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/efournival/iot-project/device/humiture"
@@ -10,11 +11,17 @@ import (
 	"github.com/efournival/iot-project/device/photoresistor"
 	led "github.com/efournival/iot-project/device/rgb-led"
 	"github.com/efournival/iot-project/device/thermistor"
+	"periph.io/x/periph"
 	"periph.io/x/periph/host/bcm283x"
 )
 
 func main() {
 	fmt.Println("Initializing sensors...")
+
+	if _, err := periph.Init(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	pcf := pcf8591.NewPCF8591(0x48, 120)
 	fmt.Println("PCF8591 (analog-to-digital converter) \t OK")

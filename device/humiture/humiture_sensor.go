@@ -7,19 +7,11 @@ import (
 	"os"
 	"time"
 
-	"periph.io/x/periph"
 	"periph.io/x/periph/conn/gpio"
 )
 
 type HumitureSensor struct {
 	pin gpio.PinIO
-}
-
-func init() {
-	if _, err := periph.Init(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
 }
 
 func NewHumitureSensor(pin gpio.PinIO) *HumitureSensor {
