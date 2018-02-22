@@ -29,8 +29,8 @@
 \preto{\@verbatim}{\topsep=0.25em \partopsep=0.25em }
 \makeatother
 
-\newcommand{\plugmodule}[2]{Plug the \texttt{#1} pin of the module into the \texttt{#2} pin of the GPIO extension board.}
-\newcommand{\plugcolumn}[4]{Plug a #1 cable between the \texttt{#2} pin and the \texttt{#3} column on the #4.}
+\newcommand{\plugmodule}[2]{Plug the \texttt{#1} pin into the \texttt{#2} pin of the GPIO extension board.}
+\newcommand{\plugcolumn}[4]{Plug a {#1\def\temp{#1}\ifx\temp\empty\else\ \fi}cable between the \texttt{#2} pin and the \texttt{#3} column on the #4.}
 
 \begin{document}
 
@@ -38,7 +38,7 @@ Edgar Fournival \hfill M2 COMASIC
 
 \begin{center}
   \medskip
-  \LARGE\textbf{Project report: Internet of Things}
+  \huge\textbf{Project report: Internet of Things}
   \medskip
 \end{center}
 
@@ -84,7 +84,7 @@ Host rpi
   HostName 192.168.1.11
 \end{verbatim}
 
-This enabled me to connect to the \rpi under the alias \texttt{rpi} and without providing a password. From now I can type directly \texttt{ssh rpi} or use \texttt{rpi} in the \texttt{rsync} or \texttt{scp} commands.
+This allowed me to connect to the \rpi under the alias \texttt{rpi} and without providing a password. From now I can type directly \texttt{ssh rpi} or use \texttt{rpi} in the \texttt{rsync} or \texttt{scp} commands.
 
 \subsection{Hardware}
 
@@ -92,11 +92,9 @@ This enabled me to connect to the \rpi under the alias \texttt{rpi} and without 
 
 \begin{enumerate}
   \item	Open the \rpi in order to access the GPIO pins.
-  \item	Connect the GPIO ``rainbow pride'' cable to the \rpi.
-  \item	Connect the GPIO extension board to the other end of the GPIO cable.
+  \item	Plug the GPIO ``rainbow pride'' cable to the \rpi.
+  \item	Plug the GPIO extension board to the other end of the GPIO cable.
   \item	Plug the GPIO extension board into the middle of the breadboard.
-  \item	\plugcolumn{red}{5V0}{+}{right}
-  \item	\plugcolumn{black}{GND}{-}{right}
   \item	\plugcolumn{red}{3V3}{+}{left}
   \item	\plugcolumn{black}{GND}{-}{left}
 \end{enumerate}
@@ -104,11 +102,45 @@ This enabled me to connect to the \rpi under the alias \texttt{rpi} and without 
 \subsubsection{RGB LED module}
 
 \begin{enumerate}
-  \item	Plug the \texttt{VCC} pin of the module into the \texttt{5V0 +} column on the right.
-  \item	\plugmodule{R}{GPIO18}
-  \item	\plugmodule{G}{GPIO24}
-  \item	\plugmodule{B}{GPIO21}
-  \item	The GPIO pin has been chosen to be on the same PWM channel.
+  \item	\plugcolumn{}{VCC}{3V3 +}{left}
+  \item	\plugmodule{R}{GPIO17}
+  \item	\plugmodule{G}{GPIO18}
+  \item	\plugmodule{B}{GPIO27}
+\end{enumerate}
+
+\subsubsection{PCF8591 module}
+
+\begin{enumerate}
+  \item	\plugcolumn{}{VCC}{3V3 +}{left}
+  \item \plugcolumn{}{GND}{3V3 -}{left}
+  \item	\plugmodule{SDA}{SDA1}
+  \item	\plugmodule{SCL}{SCL1}
+  \item Plug a 4-pins female cable into the \texttt{AIN0}, \texttt{AIN1}, \texttt{AIN2} and \texttt{AIN3} of the module.
+  \item Plug the other end of the cable into unused lines on the breadboard.
+\end{enumerate}
+
+\subsubsection{Thermistor}
+
+\begin{enumerate}
+  \item	\plugcolumn{}{VCC}{3V3 +}{left}
+  \item \plugcolumn{}{GND}{3V3 -}{left}
+  \item Plug a cable between the \texttt{SIG} pin and \texttt{AIN0} from the PCF8591 on the breadboard.
+\end{enumerate}
+
+\subsubsection{Photoresistor}
+
+\begin{enumerate}
+  \item	\plugcolumn{}{VCC}{3V3 +}{left}
+  \item \plugcolumn{}{GND}{3V3 -}{left}
+  \item	Plug a cable between the \texttt{SIG} pin and \texttt{AIN1} from the PCF8591 on the breadboard.
+\end{enumerate}
+
+\subsubsection{Humiture sensor}
+
+\begin{enumerate}
+  \item	\plugmodule{VCC}{5V0}
+  \item \plugmodule{GND}{GND}
+  \item	\plugmodule{SIG}{GPIO22}
 \end{enumerate}
 
 \subsection{Software}
@@ -120,15 +152,54 @@ sudo apt-get update
 
 \subsubsection{The Go toolchain}
 
-Then, we will need the Go toolchain for local testing. Note that this is useful for development purposes only (i.e. running \texttt{go test} on modules). Here is the command:
+Then, we will need the Go toolchain for local testing. The package available in Raspbian is too old, so here is the command for the last release:
 \begin{verbatim}
-sudo apt-get install golang
+wget https://dl.google.com/go/go1.10.linux-armv6l.tar.gz
+sudo tar -C /usr/local -xzf go1.10.linux-armv6l.tar.gz
+echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc
 \end{verbatim}
 
 After that, we need to setup Go environment in a specific folder and permanently export the \texttt{GOPATH} environment variable:
 \begin{verbatim}
-mkdir -p ~/go && echo "export GOPATH=~/go" >> ~/.bashrc && source ~/.bashrc
+sudo su -
+mkdir -p ~/go
+echo "export GOPATH=~/go" >> ~/.bashrc
+source ~/.bashrc
 \end{verbatim}
+
+Note we are doing this with the \texttt{root} user because only the superuser can play with PWM (used by the RGB LED).
+
+\subsubsection{Cloning the repository}
+
+Git is already installed on the \rpi. We will use it to clone the repository of my project hosted on GitHub.
+
+Note that the repository must be cloned in \verb|$GOPATH| in order to be able to use \texttt{go get}:
+\begin{verbatim}
+sudo su -
+export IOTDIR=$GOPATH/src/github.com/efournival
+mkdir -p $IOTDIR && cd $IOTDIR
+git clone https://github.com/efournival/iot-project.git
+cd iot-project
+\end{verbatim}
+
+\subsubsection{Enabling the I2C bus}
+
+The I2C bus is used by the PCF8591 analog-to-digital converter in order to read the temperature from the thermistor.
+
+First, connect to the device using SSH (for example, \texttt{ssh rpi}) and run the configuration utility:
+\begin{verbatim}
+sudo raspi-config
+\end{verbatim}
+
+Then:
+\begin{enumerate}
+  \item Enter \texttt{9 Advanced Options}.
+  \item Enter \texttt{A6 I2C}.
+  \item Answer ``yes'' to the question ``Would you like the ARM I2C interface to be enabled?''.
+  \item Wait for the confirmation then quit with the escape key.
+\end{enumerate}
+
+The device driver should now be available under \texttt{/dev}, you can quickly check by running \texttt{ls /dev/i2c-1}.
 
 \section*{Conclusion}
 
