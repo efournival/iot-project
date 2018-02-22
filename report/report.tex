@@ -1,0 +1,143 @@
+% Edgar Fournival <contact@edgar-fournival.fr>
+
+\documentclass[11pt,a4paper]{article}
+\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+
+\usepackage[english]{babel}
+
+\usepackage{ifxetex}
+
+\ifxetex
+  \usepackage{fontspec}
+\else
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\fi
+
+\setlength\parindent{0pt}
+\setlength\parskip{0.25em}
+
+\let\emptyset\varnothing
+\let\leq\leqslant
+\let\geq\geqslant
+
+\usepackage{xspace}
+\newcommand{\rpi}{Raspberry Pi\xspace}
+
+\usepackage{etoolbox}
+\makeatletter
+\preto{\@verbatim}{\topsep=0.25em \partopsep=0.25em }
+\makeatother
+
+\newcommand{\plugmodule}[2]{Plug the \texttt{#1} pin of the module into the \texttt{#2} pin of the GPIO extension board.}
+\newcommand{\plugcolumn}[4]{Plug a #1 cable between the \texttt{#2} pin and the \texttt{#3} column on the #4.}
+
+\begin{document}
+
+Edgar Fournival \hfill M2 COMASIC
+
+\begin{center}
+  \medskip
+  \LARGE\textbf{Project report: Internet of Things}
+  \medskip
+\end{center}
+
+\section*{Introduction}
+
+\section{Setup}
+
+\subsection{Networking}
+
+During the development and the testing of the project, I used an Ethernet cable with a static networking configuration.
+
+The \rpi, my home computer and the Internet connection were all connected to a Dlink switch.
+
+In order to define a non-volatile network configuration on the \rpi, the file \texttt{/etc/network/\allowbreak interfaces} was edited by adding the following instructions:
+\begin{verbatim}
+iface eth0 inet static
+  address 192.168.1.11
+  netmask 255.255.255.0
+  gateway 192.168.1.1
+\end{verbatim}
+
+My Internet connection is backed by an Orange Livebox which is on a 192.168.1.0/24 network. It supports DHCP but I preferred to give the \rpi a static configuration in order to ease the configuration of the SSH link between the devices.
+
+\subsection{SSH}
+
+SSH is a secure transport protocol designed to replace Telnet. It can be used to send commands to a remote device or setup things such as port forwarding, encrypted tunnels, etc. I have decided to setup SSH on the \rpi in order to drop the need to use the QWERTY keyboard, the mouse and another screen.
+
+The SSH server service has been enabled on the \rpi, meaning it will start during the boot. This has been achieved with this command:
+\begin{verbatim}
+sudo systemctl enable ssh
+\end{verbatim}
+
+After that, I created a new SSH key on my home computer without a passphrase using \texttt{ssh-keygen} with its default options. The key was then sent to the \rpi using:
+\begin{verbatim}
+ssh-copy-id -i ~/.ssh/rpi pi@192.168.1.11
+\end{verbatim}
+
+To make things easier, I also defined a SSH alias in \verb|~/.ssh/config|:
+\begin{verbatim}
+Host rpi
+  IdentityFile ~/.ssh/rpi
+  User pi
+  HostName 192.168.1.11
+\end{verbatim}
+
+This enabled me to connect to the \rpi under the alias \texttt{rpi} and without providing a password. From now I can type directly \texttt{ssh rpi} or use \texttt{rpi} in the \texttt{rsync} or \texttt{scp} commands.
+
+\subsection{Hardware}
+
+\subsubsection{The basics}
+
+\begin{enumerate}
+  \item	Open the \rpi in order to access the GPIO pins.
+  \item	Connect the GPIO ``rainbow pride'' cable to the \rpi.
+  \item	Connect the GPIO extension board to the other end of the GPIO cable.
+  \item	Plug the GPIO extension board into the middle of the breadboard.
+  \item	\plugcolumn{red}{5V0}{+}{right}
+  \item	\plugcolumn{black}{GND}{-}{right}
+  \item	\plugcolumn{red}{3V3}{+}{left}
+  \item	\plugcolumn{black}{GND}{-}{left}
+\end{enumerate}
+
+\subsubsection{RGB LED module}
+
+\begin{enumerate}
+  \item	Plug the \texttt{VCC} pin of the module into the \texttt{5V0 +} column on the right.
+  \item	\plugmodule{R}{GPIO18}
+  \item	\plugmodule{G}{GPIO24}
+  \item	\plugmodule{B}{GPIO21}
+  \item	The GPIO pin has been chosen to be on the same PWM channel.
+\end{enumerate}
+
+\subsection{Software}
+
+First, we need to update the package cache in order to be able to install new packages:
+\begin{verbatim}
+sudo apt-get update
+\end{verbatim}
+
+\subsubsection{The Go toolchain}
+
+Then, we will need the Go toolchain for local testing. Note that this is useful for development purposes only (i.e. running \texttt{go test} on modules). Here is the command:
+\begin{verbatim}
+sudo apt-get install golang
+\end{verbatim}
+
+After that, we need to setup Go environment in a specific folder and permanently export the \texttt{GOPATH} environment variable:
+\begin{verbatim}
+mkdir -p ~/go && echo "export GOPATH=~/go" >> ~/.bashrc && source ~/.bashrc
+\end{verbatim}
+
+\section*{Conclusion}
+
+%il faut expliquer l'architecture avec des flèches, en détails
+%par exemple :
+%ordinateur
+%rpi, capteurs
+%sockets, direction des flux
+%activateurs (lampe, alarme, ...)
+%serveurs, stockage
+
+\end{document}
