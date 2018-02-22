@@ -9,11 +9,11 @@ import (
 )
 
 func TestGetLightIntensity(t *testing.T) {
-	pcf := pcf8591.NewPCF8591(0x48, 120)
+	pcf := pcf8591.NewPCF8591(0x48)
 	sensor := NewLightSensor(pcf, 1)
 
-	for i := 0; i < 10; i++ {
+	for {
 		fmt.Println("Light intensity =", sensor.GetLightIntensity())
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Second)
 	}
 }

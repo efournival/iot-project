@@ -23,13 +23,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	pcf := pcf8591.NewPCF8591(0x48, 120)
+	pcf := pcf8591.NewPCF8591(0x48)
 	fmt.Println("PCF8591 (analog-to-digital converter) \t OK")
 
 	temp := thermistor.NewTemperatureSensor(pcf, 0)
 	fmt.Println("Thermistor \t\t\t\t OK")
 
-	light := photoresistor.NewLightSensor(pcf, 2)
+	light := photoresistor.NewLightSensor(pcf, 1)
 	fmt.Println("Photoresistor \t\t\t\t OK")
 
 	humtemp := humiture.NewHumitureSensor(bcm283x.GPIO22)
