@@ -19,6 +19,7 @@ const (
 	PCFAddress          = 0x48
 	ThermistorPCFPin    = 0
 	PhotoresistorPCFPin = 1
+	Undefined           = -1000
 )
 
 var (
@@ -44,8 +45,8 @@ func main() {
 	log.Println("Photoresistor initialized on PCF input pin", PhotoresistorPCFPin)
 
 	humtemp := humiture.NewHumitureSensor(DHT11Pin)
-	lastHumidity := 0
-	lastTemperature := 0
+	lastHumidity := 50
+	lastTemperature := Undefined
 	log.Println("DHT11 (humiture sensor) initialized on pin", DHT11Pin)
 
 	led := rgbled.NewRGBLED(LEDRPin, LEDGPin, LEDBPin)
@@ -56,13 +57,17 @@ func main() {
 		temperature := temp.GetTemperature()
 		lightIntensity := light.GetLightIntensity()
 
-		if temperature2, humidity, err := humtemp.GetHumidityAndTemperature(); err == nil {
+		if humidity, temperature2, err := humtemp.GetHumidityAndTemperature(); err == nil {
 			lastTemperature = temperature2
 			lastHumidity = humidity
 		}
 
+		if lastTemperature != Undefined {
+			temperature = int((temperature + lastTemperature) / 2)
+		}
+
 		fmt.Println()
-		log.Println("Temperature =", int((temperature+lastTemperature)/2), "°C")
+		log.Println("Temperature =", temperature, "°C")
 		log.Println("Light intensity =", lightIntensity)
 		log.Println("Humidity =", lastHumidity, "%")
 
