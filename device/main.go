@@ -9,51 +9,60 @@ import (
 	"github.com/efournival/iot-project/device/humiture"
 	"github.com/efournival/iot-project/device/pcf8591"
 	"github.com/efournival/iot-project/device/photoresistor"
-	led "github.com/efournival/iot-project/device/rgb-led"
+	"github.com/efournival/iot-project/device/rgbled"
 	"github.com/efournival/iot-project/device/thermistor"
 	"periph.io/x/periph"
 	"periph.io/x/periph/host/bcm283x"
 )
 
-func main() {
-	fmt.Println("Initializing sensors...")
+const (
+	PCFAddress          = 0x48
+	ThermistorPCFPin    = 0
+	PhotoresistorPCFPin = 1
+)
 
+var (
+	DHT11Pin *bcm283x.Pin = bcm283x.GPIO22
+	LEDRPin  *bcm283x.Pin = bcm283x.GPIO17
+	LEDGPin  *bcm283x.Pin = bcm283x.GPIO18
+	LEDBPin  *bcm283x.Pin = bcm283x.GPIO27
+)
+
+func main() {
 	if _, err := periph.Init(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	pcf := pcf8591.NewPCF8591(0x48)
-	fmt.Println("PCF8591 (analog-to-digital converter) \t OK")
+	pcf := pcf8591.NewPCF8591(PCFAddress)
+	log.Println("PCF8591 initialized")
 
-	temp := thermistor.NewTemperatureSensor(pcf, 0)
-	fmt.Println("Thermistor \t\t\t\t OK")
+	temp := thermistor.NewTemperatureSensor(pcf, ThermistorPCFPin)
+	log.Println("Thermistor initialized on PCF input pin", ThermistorPCFPin)
 
-	light := photoresistor.NewLightSensor(pcf, 1)
-	fmt.Println("Photoresistor \t\t\t\t OK")
+	light := photoresistor.NewLightSensor(pcf, PhotoresistorPCFPin)
+	log.Println("Photoresistor initialized on PCF input pin", PhotoresistorPCFPin)
 
-	humtemp := humiture.NewHumitureSensor(bcm283x.GPIO22)
+	humtemp := humiture.NewHumitureSensor(DHT11Pin)
 	lastHumidity := 0
-	fmt.Println("DHT11 (humiture) \t\t\t OK")
+	lastTemperature := 0
+	log.Println("DHT11 (humiture sensor) initialized on pin", DHT11Pin)
 
-	fmt.Println("\nInitializing RGB LED...")
-
-	led := led.NewRGBLED(bcm283x.GPIO17, bcm283x.GPIO18, bcm283x.GPIO27)
+	led := rgbled.NewRGBLED(LEDRPin, LEDGPin, LEDBPin)
 	led.SetColor(0, 0, 0)
-	fmt.Println("RGB LED through PWM pins \t\t OK")
+	log.Printf("RGB LED initialized on PWM pins %s, %s and %s", LEDRPin, LEDGPin, LEDBPin)
 
 	for {
 		temperature := temp.GetTemperature()
 		lightIntensity := light.GetLightIntensity()
 
-		temperature2, humidity, err := humtemp.GetHumidityAndTemperature()
-		if err == nil {
-			temperature = (temperature + temperature2) / 2
+		if temperature2, humidity, err := humtemp.GetHumidityAndTemperature(); err == nil {
+			lastTemperature = temperature2
 			lastHumidity = humidity
 		}
 
 		fmt.Println()
-		log.Println("Temperature =", temperature, "°C")
+		log.Println("Temperature =", int((temperature+lastTemperature)/2), "°C")
 		log.Println("Light intensity =", lightIntensity)
 		log.Println("Humidity =", lastHumidity, "%")
 

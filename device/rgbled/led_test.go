@@ -1,4 +1,4 @@
-package led
+package rgbled
 
 import (
 	"fmt"
