@@ -1,7 +1,7 @@
 % Edgar Fournival <contact@edgar-fournival.fr>
 
 \documentclass[11pt,a4paper]{article}
-\usepackage[left=2cm,right=2cm,top=2cm,bottom=2cm]{geometry}
+\usepackage[left=1.9cm,right=1.9cm,top=2cm,bottom=2cm]{geometry}
 
 \usepackage[english]{babel}
 
@@ -26,8 +26,17 @@
 
 \usepackage{etoolbox}
 \makeatletter
-\preto{\@verbatim}{\topsep=0.25em \partopsep=0.25em }
+\preto{\@verbatim}{\topsep=0pt \partopsep=0pt }
 \makeatother
+
+\usepackage[hidelinks]{hyperref}
+
+\interfootnotelinepenalty=10000
+\usepackage[bottom]{footmisc}
+
+\usepackage{enumitem}
+\setlist[itemize]{itemsep=0pt, topsep=0.1em}
+\setlist[enumerate]{itemsep=0pt, topsep=0.1em}
 
 \newcommand{\plugmodule}[2]{Plug the \texttt{#1} pin into the \texttt{#2} pin of the GPIO extension board.}
 \newcommand{\plugcolumn}[4]{Plug a {#1\def\temp{#1}\ifx\temp\empty\else\ \fi}cable between the \texttt{#2} pin and the \texttt{#3} column on the #4.}
@@ -43,11 +52,17 @@ Edgar Fournival \hfill M2 COMASIC
 \end{center}
 
 \section*{Introduction}
+The goal of this project is to implement a simple measuring device which will send sensors value to a server and set its RGB LED color accordingly.
+
+It is not really useful but the architecture answer the project guidelines. In the future, my project has the great potential to become a \$1.50 gadget sold on AliExpress (with free shipping).
+
+In order to do something interesting, I have used an uncommon language : Go. As almost nothing high-level has already been developed, I had to do the port from C/Python (based on SunFounder GitHub examples) to Go. This helped me understand some of the electronics behind the code and it also improved the available embedded code base for this language.
+
+Also, please note that Go is not designed for low-level programming as it has a garbage collector. However, it is becoming more and more popular for embedded development due to its high-level nature and its powerful (cross-)compiler.
 
 \section{Setup}
 
 \subsection{Networking}
-
 During the development and the testing of the project, I used an Ethernet cable with a static networking configuration.
 
 The \rpi, my home computer and the Internet connection were all connected to a Dlink switch.
@@ -63,7 +78,6 @@ iface eth0 inet static
 My Internet connection is backed by an Orange Livebox which is on a 192.168.1.0/24 network. It supports DHCP but I preferred to give the \rpi a static configuration in order to ease the configuration of the SSH link between the devices.
 
 \subsection{SSH}
-
 SSH is a secure transport protocol designed to replace Telnet. It can be used to send commands to a remote device or setup things such as port forwarding, encrypted tunnels, etc. I have decided to setup SSH on the \rpi in order to drop the need to use the QWERTY keyboard, the mouse and another screen.
 
 The SSH server service has been enabled on the \rpi, meaning it will start during the boot. This has been achieved with this command:
@@ -89,7 +103,6 @@ This allowed me to connect to the \rpi under the alias \texttt{rpi} and without 
 \subsection{Hardware}
 
 \subsubsection{The basics}
-
 \begin{enumerate}
   \item	Open the \rpi in order to access the GPIO pins.
   \item	Plug the GPIO ``rainbow pride'' cable to the \rpi.
@@ -100,7 +113,6 @@ This allowed me to connect to the \rpi under the alias \texttt{rpi} and without 
 \end{enumerate}
 
 \subsubsection{RGB LED module}
-
 \begin{enumerate}
   \item	\plugcolumn{}{VCC}{3V3 +}{left}
   \item	\plugmodule{R}{GPIO17}
@@ -109,7 +121,6 @@ This allowed me to connect to the \rpi under the alias \texttt{rpi} and without 
 \end{enumerate}
 
 \subsubsection{PCF8591 module}
-
 \begin{enumerate}
   \item	\plugcolumn{}{VCC}{3V3 +}{left}
   \item \plugcolumn{}{GND}{3V3 -}{left}
@@ -120,7 +131,6 @@ This allowed me to connect to the \rpi under the alias \texttt{rpi} and without 
 \end{enumerate}
 
 \subsubsection{Thermistor}
-
 \begin{enumerate}
   \item	\plugcolumn{}{VCC}{3V3 +}{left}
   \item \plugcolumn{}{GND}{3V3 -}{left}
@@ -128,7 +138,6 @@ This allowed me to connect to the \rpi under the alias \texttt{rpi} and without 
 \end{enumerate}
 
 \subsubsection{Photoresistor}
-
 \begin{enumerate}
   \item	\plugcolumn{}{VCC}{3V3 +}{left}
   \item \plugcolumn{}{GND}{3V3 -}{left}
@@ -136,7 +145,6 @@ This allowed me to connect to the \rpi under the alias \texttt{rpi} and without 
 \end{enumerate}
 
 \subsubsection{Humiture sensor}
-
 \begin{enumerate}
   \item	\plugmodule{VCC}{5V0}
   \item \plugmodule{GND}{GND}
@@ -145,13 +153,7 @@ This allowed me to connect to the \rpi under the alias \texttt{rpi} and without 
 
 \subsection{Software}
 
-First, we need to update the package cache in order to be able to install new packages:
-\begin{verbatim}
-sudo apt-get update
-\end{verbatim}
-
 \subsubsection{The Go toolchain}
-
 Then, we will need the Go toolchain for local testing. The package available in Raspbian is too old, so here is the command for the last release:
 \begin{verbatim}
 wget https://dl.google.com/go/go1.10.linux-armv6l.tar.gz
@@ -170,7 +172,6 @@ source ~/.bashrc
 Note we are doing this with the \texttt{root} user because only the superuser can play with PWM (used by the RGB LED).
 
 \subsubsection{Cloning the repository}
-
 Git is already installed on the \rpi. We will use it to clone the repository of my project hosted on GitHub.
 
 Note that the repository must be cloned in \verb|$GOPATH| in order to be able to use \texttt{go get}:
@@ -183,7 +184,6 @@ cd iot-project
 \end{verbatim}
 
 \subsubsection{Enabling the I2C bus}
-
 The I2C bus is used by the PCF8591 analog-to-digital converter in order to read the temperature from the thermistor.
 
 First, connect to the device using SSH (for example, \texttt{ssh rpi}) and run the configuration utility:
@@ -201,14 +201,48 @@ Then:
 
 The device driver should now be available under \texttt{/dev}, you can quickly check by running \texttt{ls /dev/i2c-1}.
 
-\section*{Conclusion}
+\section{Architecture}
+My project has a simple architecture:
+\begin{itemize}
+    \item   The \rpi is collecting sensor data and sending it to the server.
+    \item   The server computes the LED color from sensor data before sending it back to the \rpi.
+    \item   The \rpi receives the color and sets it accordingly on the hardware.
+\end{itemize}
 
-%il faut expliquer l'architecture avec des flèches, en détails
-%par exemple :
-%ordinateur
-%rpi, capteurs
-%sockets, direction des flux
-%activateurs (lampe, alarme, ...)
-%serveurs, stockage
+UDP has been chosen for the networking part as we do not care if we lose a packet. Also, it is more flexible than TCP, which is a stream protocol and requires connection.
+
+\section{Development}
+
+\subsection{Porting the code}
+The \rpi has a great existing ecosystem with a big available code base in C and Python. Almost nothing do exist in Go. The challenge of this project, that I modified a little in order to do something original, was to do the same as my classmates with the low-level part.
+
+Each chosen module was tricky to implement except the thermistor and the photoresistor, because only the PCF8591 was hard to port to Go. As they are both connected to it, the code was quite easy to do.
+
+Starting with the RGB LED, it uses PWM pins which were not supported by the GPIO library I initially chose. I finally used PeriphIO\footnote{\url{https://periph.io/}} which is a project backed by Google to promote embedded programming with Go. My code for this LED seems to be working but neither the SunFounder's original C code nor mine's succeeded to display right colors. I think there is a problem with my RGB LED module but I can still display red, blue, green or yellow colors. Intermediate ones are either light blue or almost white.
+
+The PCF8591 code was also difficult to port as the implementations in C or Python were too much relying on the specifics libraries (WiringPi for example). I even needed the original data sheet\footnote{\url{https://www.nxp.com/docs/en/data-sheet/PCF8591.pdf}} from the manufacturer in order to port it successfully. Once this was done, porting the thermistor and the photoresistor code has been quick to achieve.
+
+Finally, the DHT11 (humiture) sensor is a piece of unreliable electronics and keeps failing to send the sensor data 30-50\% of the time. The \rpi implementation with WiringPi was so bad that I needed to port an Arduino code and tweak it in order to improve reliability. I finally achieved less failures with my Go implementation than with the SunFounder's C code.
+
+\subsection{Client/server}
+Go is great language for everything related to networking. I used the UDP standard library and added more high-level wrappers around it in order to have readable final device and server codes.
+
+My package in the folder \emph{udp} contains the wrappers.
+
+\subsection{Threads, synchronization, etc.}
+All of these was not necessary due to the asynchronous nature of the Go language.
+
+I have used the \texttt{go} keyword to start concurrent functions like UDP socket listening and smooth RGB LED color changing.
+
+Also, client and server codes use a callback when receiving an UDP packet.
+
+\section{Testing}
+On the device, change the current directory to the package \emph{device}. Then run \texttt{go get} in order to automatically retrieve the dependencies (PeriphIO). Then run \texttt{go build} and \texttt{./device HOST\_IP}. \texttt{HOST\_IP} must be the IP of the host on the same network (most probably Wi-Fi).
+
+Client and server can be launched in any order since there is no connection.
+
+On the host, change the directory to \emph{server}. Do not forget to clone the repository in \texttt{\$GOPATH} exactly as we did with the device, but without becoming the superuser first. Run \texttt{go get}, \texttt{go build} and \texttt{./server}.
+
+Finally, watch how the RGB LED color is changing as the sensors data is changing too. Impressive.
 
 \end{document}
