@@ -26,19 +26,14 @@ func TestRed(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
-func TestGreen(t *testing.T) {
-	led.SetColor(0, 255, 0)
-	time.Sleep(time.Second)
-}
-
-func TestBlue(t *testing.T) {
-	led.SetColor(0, 0, 255)
-	time.Sleep(time.Second)
-}
-
-func TestWhite(t *testing.T) {
-	led.SetColor(255, 255, 255)
-	time.Sleep(time.Second)
+func TestSmoothBlue(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		p := float64(i) / 9
+		r := uint8((1.0-p)*255.0 + 0.5)
+		b := uint8(p*255.0 + 0.5)
+		led.SetColor(r, 0, b)
+		time.Sleep(1000 / 10 * time.Millisecond)
+	}
 }
 
 func TestOff(t *testing.T) {
